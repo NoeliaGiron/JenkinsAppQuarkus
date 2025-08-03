@@ -1,18 +1,48 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.6-openjdk-17'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
     
     environment {
         APP_NAME = 'hola-noelia'
         APP_VERSION = '1.0.0-SNAPSHOT'
         QUARKUS_VERSION = '3.6.3'
+        MAVEN_VERSION = '3.9.6'
     }
     
     stages {
+        stage('Setup Tools') {
+            steps {
+                echo '🔧 Configurando herramientas...'
+                script {
+                    // Instalar Maven si no está disponible
+                    sh '''
+                        if ! command -v mvn &> /dev/null; then
+                            echo "📦 Instalando Maven..."
+                            # Descargar Maven
+                            wget https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+                            tar -xzf apache-maven-${MAVEN_VERSION}-bin.tar.gz
+                            export PATH=$PATH:$(pwd)/apache-maven-${MAVEN_VERSION}/bin
+                            echo "✅ Maven instalado en: $(pwd)/apache-maven-${MAVEN_VERSION}/bin"
+                        else
+                            echo "✅ Maven ya está instalado"
+                        fi
+                        
+                        # Verificar Java
+                        if ! command -v java &> /dev/null; then
+                            echo "❌ Java no está instalado. Instalando OpenJDK..."
+                            apt-get update && apt-get install -y openjdk-17-jdk
+                        else
+                            echo "✅ Java está disponible"
+                        fi
+                        
+                        echo "🔧 Verificando herramientas:"
+                        java --version
+                        mvn --version
+                        git --version
+                    '''
+                }
+            }
+        }
+        
         stage('Checkout') {
             steps {
                 echo '🔍 Verificando código fuente...'
@@ -27,17 +57,6 @@ pipeline {
                     echo "  - Commit: ${env.GIT_COMMIT}"
                     echo "  - Versión: ${env.APP_VERSION}"
                     echo "  - Quarkus: ${env.QUARKUS_VERSION}"
-                    
-                    // Verificar herramientas disponibles
-                    sh '''
-                        echo "🔧 Verificando herramientas disponibles:"
-                        echo "Java version:"
-                        java --version
-                        echo "Maven version:"
-                        mvn --version
-                        echo "Git version:"
-                        git --version
-                    '''
                 }
             }
         }
@@ -45,21 +64,46 @@ pipeline {
         stage('Validate') {
             steps {
                 echo '✅ Validando proyecto Maven...'
-                sh 'mvn validate'
+                script {
+                    sh '''
+                        # Usar Maven del PATH o del directorio descargado
+                        if command -v mvn &> /dev/null; then
+                            mvn validate
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn validate
+                        fi
+                    '''
+                }
             }
         }
         
         stage('Compile') {
             steps {
                 echo '🔨 Compilando aplicación Quarkus...'
-                sh 'mvn compile'
+                script {
+                    sh '''
+                        if command -v mvn &> /dev/null; then
+                            mvn compile
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn compile
+                        fi
+                    '''
+                }
             }
         }
         
         stage('Test') {
             steps {
                 echo '🧪 Ejecutando pruebas...'
-                sh 'mvn test'
+                script {
+                    sh '''
+                        if command -v mvn &> /dev/null; then
+                            mvn test
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn test
+                        fi
+                    '''
+                }
             }
             post {
                 always {
@@ -72,7 +116,15 @@ pipeline {
         stage('Package') {
             steps {
                 echo '📦 Empaquetando aplicación...'
-                sh 'mvn clean package -DskipTests'
+                script {
+                    sh '''
+                        if command -v mvn &> /dev/null; then
+                            mvn clean package -DskipTests
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn clean package -DskipTests
+                        fi
+                    '''
+                }
             }
         }
         

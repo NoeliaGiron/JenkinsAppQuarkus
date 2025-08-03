@@ -1,44 +1,35 @@
 # 🔧 Solución de Problemas - Jenkins Pipeline
 
-## ❌ Error: mvn: not found
+## ❌ Error: permission denied while trying to connect to the Docker daemon socket
 
 ### Problema
-Jenkins no tiene Maven instalado en el contenedor.
+Jenkins no tiene permisos para acceder a Docker.
 
-### Solución 1: Usar Jenkinsfile con Docker (Recomendado)
-Cambia el **Script Path** en tu Pipeline Job a:
-```
-Jenkinsfile
-```
-Este usa una imagen Docker con Maven pre-instalado.
+### Solución 1: Usar Jenkinsfile actualizado (Recomendado)
+El **Jenkinsfile** actual ya está configurado para funcionar sin Docker y instala Maven automáticamente.
 
-### Solución 2: Usar Jenkinsfile sin Docker
-Cambia el **Script Path** a:
+### Solución 2: Solucionar permisos de Docker
+Si quieres usar Docker, ejecuta:
+```bash
+chmod +x fix-docker-permissions.sh
+./fix-docker-permissions.sh
 ```
-Jenkinsfile.no-docker
-```
-Este instala Maven automáticamente.
 
-### Solución 3: Usar Jenkinsfile simplificado
-Cambia el **Script Path** a:
-```
-Jenkinsfile.simple
-```
-Este es la versión más básica.
+### Solución 3: Usar Jenkinsfile sin Docker
+El **Jenkinsfile** actual ya usa esta configuración.
 
 ## 🎯 Opciones de Jenkinsfile Disponibles
 
-### 1. Jenkinsfile (Recomendado - Con Docker)
-- ✅ Usa imagen Docker con Maven pre-instalado
-- ✅ No requiere configuración adicional
+### 1. Jenkinsfile (Actual - Recomendado)
+- ✅ Instala Maven automáticamente
+- ✅ No requiere Docker
 - ✅ Funciona en cualquier Jenkins
 - ✅ Incluye todas las características
 
 ### 2. Jenkinsfile.no-docker
+- ✅ Versión alternativa sin Docker
 - ✅ Instala Maven automáticamente
-- ✅ No requiere Docker
 - ✅ Funciona en Jenkins sin Docker
-- ✅ Descarga e instala herramientas
 
 ### 3. Jenkinsfile.simple
 - ✅ Versión simplificada
@@ -64,7 +55,7 @@ Tipo: Pipeline
 SCM: Git
 Repository: https://github.com/NoeliaGiron/JenkinsAppQuarkus.git
 Branch: main
-Script Path: Jenkinsfile (o Jenkinsfile.no-docker)
+Script Path: Jenkinsfile
 ```
 
 ### Paso 3: Ejecutar
@@ -78,9 +69,6 @@ Build Now
 - ✅ Pipeline
 - ✅ Git
 
-### Para Docker (Jenkinsfile):
-- 🐳 Docker Pipeline
-
 ### Opcionales:
 - 📧 Email Extension (para notificaciones)
 - 📊 Test Results (para reportes)
@@ -92,22 +80,25 @@ Build Now
 # Verificar que Jenkins responde
 curl http://localhost:8090
 
-# Verificar que Docker está disponible (para Jenkinsfile)
-docker --version
-
-# Verificar que Maven está disponible (para Jenkinsfile.simple)
+# Verificar que Maven está disponible
 mvn --version
 
 # Verificar que Java está disponible
 java --version
 ```
 
-## 🐳 Configurar Docker en Jenkins
+## 🐳 Configurar Docker (Opcional)
 
-Si usas `Jenkinsfile` (con Docker):
+Si quieres usar Docker en el futuro:
 
-1. **Instalar Docker Pipeline plugin**
-2. **Configurar Docker en Jenkins:**
+1. **Ejecutar script de permisos:**
+   ```bash
+   ./fix-docker-permissions.sh
+   ```
+
+2. **Instalar Docker Pipeline plugin**
+
+3. **Configurar Docker en Jenkins:**
    - Manage Jenkins > Configure System
    - Docker > Add Docker
    - Name: `docker`
@@ -139,18 +130,21 @@ Una vez configurado, tu pipeline debería ejecutarse sin problemas y generar:
 
 ## 🚨 Solución de Errores Comunes
 
-### Error: Docker no disponible
-**Solución**: Usar `Jenkinsfile.no-docker`
-
 ### Error: Maven no encontrado
-**Solución**: Usar `Jenkinsfile` (con Docker) o `Jenkinsfile.no-docker`
+**Solución**: El Jenkinsfile actual instala Maven automáticamente
 
-### Error: Permisos de Docker
-**Solución**: Agregar usuario Jenkins al grupo docker:
-```bash
-sudo usermod -aG docker jenkins
-sudo systemctl restart jenkins
-```
+### Error: Docker permisos
+**Solución**: Usar `fix-docker-permissions.sh` o usar Jenkinsfile actual
 
 ### Error: Plugins faltantes
-**Solución**: Instalar plugins necesarios desde Manage Jenkins > Plugins 
+**Solución**: Instalar plugins necesarios desde Manage Jenkins > Plugins
+
+### Error: Email no enviado
+**Solución**: Configurar SMTP en Manage Jenkins > Configure System
+
+## 📊 Estado Actual
+
+✅ **Jenkinsfile actualizado** - Funciona sin Docker
+✅ **Instalación automática de Maven**
+✅ **Configuración simplificada**
+✅ **Listo para usar** 
