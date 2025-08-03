@@ -1,18 +1,48 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.6-openjdk-17'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
     
     environment {
         APP_NAME = 'hola-noelia'
         APP_VERSION = '1.0.0-SNAPSHOT'
         QUARKUS_VERSION = '3.6.3'
+        MAVEN_VERSION = '3.9.6'
     }
     
     stages {
+        stage('Setup Tools') {
+            steps {
+                echo '🔧 Configurando herramientas...'
+                script {
+                    // Instalar Maven si no está disponible
+                    sh '''
+                        if ! command -v mvn &> /dev/null; then
+                            echo "📦 Instalando Maven..."
+                            # Descargar Maven
+                            wget https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+                            tar -xzf apache-maven-${MAVEN_VERSION}-bin.tar.gz
+                            export PATH=$PATH:$(pwd)/apache-maven-${MAVEN_VERSION}/bin
+                            echo "✅ Maven instalado en: $(pwd)/apache-maven-${MAVEN_VERSION}/bin"
+                        else
+                            echo "✅ Maven ya está instalado"
+                        fi
+                        
+                        # Verificar Java
+                        if ! command -v java &> /dev/null; then
+                            echo "❌ Java no está instalado. Instalando OpenJDK..."
+                            apt-get update && apt-get install -y openjdk-17-jdk
+                        else
+                            echo "✅ Java está disponible"
+                        fi
+                        
+                        echo "🔧 Verificando herramientas:"
+                        java --version
+                        mvn --version
+                        git --version
+                    '''
+                }
+            }
+        }
+        
         stage('Checkout') {
             steps {
                 echo '🔍 Verificando código fuente...'
@@ -27,17 +57,6 @@ pipeline {
                     echo "  - Commit: ${env.GIT_COMMIT}"
                     echo "  - Versión: ${env.APP_VERSION}"
                     echo "  - Quarkus: ${env.QUARKUS_VERSION}"
-                    
-                    // Verificar herramientas disponibles
-                    sh '''
-                        echo "🔧 Verificando herramientas disponibles:"
-                        echo "Java version:"
-                        java --version
-                        echo "Maven version:"
-                        mvn --version
-                        echo "Git version:"
-                        git --version
-                    '''
                 }
             }
         }
@@ -45,21 +64,46 @@ pipeline {
         stage('Validate') {
             steps {
                 echo '✅ Validando proyecto Maven...'
-                sh 'mvn validate'
+                script {
+                    sh '''
+                        # Usar Maven del PATH o del directorio descargado
+                        if command -v mvn &> /dev/null; then
+                            mvn validate
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn validate
+                        fi
+                    '''
+                }
             }
         }
         
         stage('Compile') {
             steps {
                 echo '🔨 Compilando aplicación Quarkus...'
-                sh 'mvn compile'
+                script {
+                    sh '''
+                        if command -v mvn &> /dev/null; then
+                            mvn compile
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn compile
+                        fi
+                    '''
+                }
             }
         }
         
         stage('Test') {
             steps {
                 echo '🧪 Ejecutando pruebas...'
-                sh 'mvn test'
+                script {
+                    sh '''
+                        if command -v mvn &> /dev/null; then
+                            mvn test
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn test
+                        fi
+                    '''
+                }
             }
             post {
                 always {
@@ -72,7 +116,15 @@ pipeline {
         stage('Package') {
             steps {
                 echo '📦 Empaquetando aplicación...'
-                sh 'mvn clean package -DskipTests'
+                script {
+                    sh '''
+                        if command -v mvn &> /dev/null; then
+                            mvn clean package -DskipTests
+                        else
+                            ./apache-maven-${MAVEN_VERSION}/bin/mvn clean package -DskipTests
+                        fi
+                    '''
+                }
             }
         }
         
@@ -100,49 +152,33 @@ pipeline {
             }
         }
         
-        stage('Health Check') {
+        stage('Success Info') {
             steps {
-                echo '🏥 Verificando salud de la aplicación...'
-                script {
-                    // Simular health check
-                    sh '''
-                        echo "Verificando endpoints..."
-                        echo "✅ /hola - OK"
-                        echo "✅ /hola/json - OK"
-                        echo "✅ /hola/web - OK"
-                        echo "✅ / - OK (redirect)"
-                    '''
-                }
-            }
-        }
-        
-        stage('Deploy Info') {
-            steps {
-                echo '🚀 Información de despliegue...'
+                echo '🎉 Información de éxito...'
                 script {
                     sh '''
                         echo "=========================================="
-                        echo "🎉 ¡Aplicación compilada exitosamente!"
+                        echo "🎉 ¡Pipeline completado exitosamente!"
                         echo "=========================================="
                         echo ""
-                        echo "📦 Artefactos disponibles:"
+                        echo "📦 Artefactos generados:"
                         echo "  - JAR: target/hola-noelia-1.0.0-SNAPSHOT.jar"
                         echo "  - App: target/quarkus-app/"
                         echo ""
-                        echo "🚀 Para ejecutar localmente:"
+                        echo "🚀 Para ejecutar:"
                         echo "  java -jar target/quarkus-app/quarkus-run.jar"
                         echo ""
-                        echo "🌐 Endpoints disponibles:"
+                        echo "🌐 Endpoints:"
                         echo "  - http://localhost:8080/ (redirect)"
-                        echo "  - http://localhost:8080/hola/web (interfaz web)"
+                        echo "  - http://localhost:8080/hola/web (web)"
                         echo "  - http://localhost:8080/hola (texto)"
                         echo "  - http://localhost:8080/hola/json (JSON)"
                         echo ""
-                        echo "🐳 Para Docker:"
+                        echo "🐳 Docker:"
                         echo "  docker build -t hola-noelia ."
                         echo "  docker run -p 8080:8080 hola-noelia"
                         echo ""
-                        echo "📊 Build completado en: ${BUILD_URL}"
+                        echo "📊 Build: ${BUILD_URL}"
                         echo "=========================================="
                     '''
                 }

@@ -1,45 +1,52 @@
 # 🔧 Solución de Problemas - Jenkins Pipeline
 
-## ❌ Error: Tool type "maven" does not have an install of "Maven 3.9.6" configured
+## ❌ Error: mvn: not found
 
 ### Problema
-Jenkins no tiene configuradas las herramientas Maven y JDK específicas.
+Jenkins no tiene Maven instalado en el contenedor.
 
-### Solución 1: Usar Jenkinsfile simplificado
+### Solución 1: Usar Jenkinsfile con Docker (Recomendado)
 Cambia el **Script Path** en tu Pipeline Job a:
+```
+Jenkinsfile
+```
+Este usa una imagen Docker con Maven pre-instalado.
+
+### Solución 2: Usar Jenkinsfile sin Docker
+Cambia el **Script Path** a:
+```
+Jenkinsfile.no-docker
+```
+Este instala Maven automáticamente.
+
+### Solución 3: Usar Jenkinsfile simplificado
+Cambia el **Script Path** a:
 ```
 Jenkinsfile.simple
 ```
-
-### Solución 2: Configurar herramientas en Jenkins
-
-1. **Ir a Manage Jenkins > Tools**
-2. **Configurar JDK:**
-   - Name: `JDK 17`
-   - JAVA_HOME: `/path/to/your/java17`
-   - O usar instalación automática
-
-3. **Configurar Maven:**
-   - Name: `Maven 3.9.6`
-   - MAVEN_HOME: `/path/to/your/maven`
-   - O usar instalación automática
-
-### Solución 3: Usar Jenkinsfile sin herramientas
-El `Jenkinsfile` actualizado ya no requiere herramientas específicas.
+Este es la versión más básica.
 
 ## 🎯 Opciones de Jenkinsfile Disponibles
 
-### 1. Jenkinsfile (Recomendado)
-- ✅ No requiere herramientas específicas
-- ✅ Funciona con cualquier configuración de Jenkins
+### 1. Jenkinsfile (Recomendado - Con Docker)
+- ✅ Usa imagen Docker con Maven pre-instalado
+- ✅ No requiere configuración adicional
+- ✅ Funciona en cualquier Jenkins
 - ✅ Incluye todas las características
 
-### 2. Jenkinsfile.simple
+### 2. Jenkinsfile.no-docker
+- ✅ Instala Maven automáticamente
+- ✅ No requiere Docker
+- ✅ Funciona en Jenkins sin Docker
+- ✅ Descarga e instala herramientas
+
+### 3. Jenkinsfile.simple
 - ✅ Versión simplificada
 - ✅ Parámetros opcionales
 - ✅ Ideal para pruebas
+- ✅ Requiere Maven instalado
 
-### 3. Jenkinsfile.parameters
+### 4. Jenkinsfile.parameters
 - ✅ Versión avanzada con parámetros
 - ✅ Múltiples ambientes
 - ✅ Configuración flexible
@@ -57,7 +64,7 @@ Tipo: Pipeline
 SCM: Git
 Repository: https://github.com/NoeliaGiron/JenkinsAppQuarkus.git
 Branch: main
-Script Path: Jenkinsfile
+Script Path: Jenkinsfile (o Jenkinsfile.no-docker)
 ```
 
 ### Paso 3: Ejecutar
@@ -71,10 +78,12 @@ Build Now
 - ✅ Pipeline
 - ✅ Git
 
+### Para Docker (Jenkinsfile):
+- 🐳 Docker Pipeline
+
 ### Opcionales:
 - 📧 Email Extension (para notificaciones)
 - 📊 Test Results (para reportes)
-- 🔍 SpotBugs (para calidad)
 
 ## 🚀 Verificar Configuración
 
@@ -83,12 +92,26 @@ Build Now
 # Verificar que Jenkins responde
 curl http://localhost:8090
 
-# Verificar que Maven está disponible
+# Verificar que Docker está disponible (para Jenkinsfile)
+docker --version
+
+# Verificar que Maven está disponible (para Jenkinsfile.simple)
 mvn --version
 
 # Verificar que Java está disponible
 java --version
 ```
+
+## 🐳 Configurar Docker en Jenkins
+
+Si usas `Jenkinsfile` (con Docker):
+
+1. **Instalar Docker Pipeline plugin**
+2. **Configurar Docker en Jenkins:**
+   - Manage Jenkins > Configure System
+   - Docker > Add Docker
+   - Name: `docker`
+   - Docker Host URI: `unix:///var/run/docker.sock`
 
 ## 📧 Configurar Email (Opcional)
 
@@ -112,4 +135,22 @@ Una vez configurado, tu pipeline debería ejecutarse sin problemas y generar:
 - **Jenkins Dashboard**: http://localhost:8090
 - **Pipeline Logs**: http://localhost:8090/job/hola-noelia-pipeline/
 - **Artefactos**: Descargables desde Jenkins
-- **Email**: Notificaciones automáticas 
+- **Email**: Notificaciones automáticas
+
+## 🚨 Solución de Errores Comunes
+
+### Error: Docker no disponible
+**Solución**: Usar `Jenkinsfile.no-docker`
+
+### Error: Maven no encontrado
+**Solución**: Usar `Jenkinsfile` (con Docker) o `Jenkinsfile.no-docker`
+
+### Error: Permisos de Docker
+**Solución**: Agregar usuario Jenkins al grupo docker:
+```bash
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+```
+
+### Error: Plugins faltantes
+**Solución**: Instalar plugins necesarios desde Manage Jenkins > Plugins 
