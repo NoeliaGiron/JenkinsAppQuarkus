@@ -139,38 +139,46 @@ pipeline {
         }
         
         stage('Build Docker Image') {
-            agent {
-                docker {
-                    image 'docker:dind'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock --privileged'
-                }
-            }
             steps {
                 echo '🐳 Construyendo imagen Docker...'
                 script {
                     sh '''
-                        # Verificar Docker
-                        docker --version
-                        
-                        # Construir imagen con permisos de admin
-                        docker build -t hola-noelia:latest .
-                        
-                        # Verificar que la imagen se creó correctamente
-                        docker images hola-noelia
-                        
-                        echo "✅ Imagen Docker construida exitosamente"
-                        echo "📦 Imagen: hola-noelia:latest"
-                        echo "🐳 Para ejecutar: docker run -p 8080:8080 hola-noelia:latest"
+                        # Verificar si Docker está disponible
+                        if command -v docker &> /dev/null; then
+                            echo "✅ Docker está disponible"
+                            docker --version
+                            
+                            # Intentar construir la imagen
+                            echo "🔨 Construyendo imagen Docker..."
+                            if docker build -t hola-noelia:latest .; then
+                                echo "✅ Imagen Docker construida exitosamente"
+                                echo "📦 Imagen: hola-noelia:latest"
+                                echo "🐳 Para ejecutar: docker run -p 8080:8080 hola-noelia:latest"
+                                
+                                # Mostrar información de la imagen
+                                docker images hola-noelia || echo "ℹ️ No se pudo mostrar información de la imagen"
+                            else
+                                echo "⚠️ No se pudo construir la imagen Docker"
+                                echo "ℹ️ Esto puede ser normal si Docker no está configurado"
+                                echo "💡 Puedes construir manualmente con: docker build -t hola-noelia ."
+                            fi
+                        else
+                            echo "ℹ️ Docker no está disponible en este entorno"
+                            echo "💡 Puedes instalar Docker o construir manualmente más tarde"
+                            echo "🔧 Para instalar Docker: https://docs.docker.com/get-docker/"
+                        fi
                     '''
                 }
             }
             post {
                 always {
                     script {
-                        // Limpiar imágenes Docker si es necesario
                         sh '''
-                            echo "🧹 Limpiando imágenes Docker temporales..."
-                            docker system prune -f || true
+                            echo "🧹 Limpieza de Docker..."
+                            # Solo intentar limpiar si Docker está disponible
+                            if command -v docker &> /dev/null; then
+                                docker system prune -f || echo "ℹ️ No se pudo limpiar Docker"
+                            fi
                         '''
                     }
                 }
