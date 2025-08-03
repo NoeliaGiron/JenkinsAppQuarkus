@@ -22,7 +22,6 @@ WORKDIR /app
 
 # Copy the built application from build stage
 COPY --from=build /app/target/quarkus-app /app/quarkus-app
-COPY --from=build /app/target/lib /app/lib
 
 # Create non-root user
 RUN groupadd -r quarkus && useradd -r -g quarkus quarkus

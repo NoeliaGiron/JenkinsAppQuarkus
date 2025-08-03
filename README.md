@@ -11,6 +11,7 @@ Esta es una aplicación hermosa de Quarkus que muestra el mensaje "Hola soy NOel
 - 🔗 **Múltiples endpoints** (texto, JSON, web)
 - 🔄 **CI/CD Pipeline** con Jenkins
 - 🐳 **Containerización** con Docker
+- ☁️ **Despliegue en Azure** App Service
 
 ## 🎯 Endpoints disponibles
 
@@ -64,6 +65,69 @@ docker-compose logs -f
 docker-compose down
 ```
 
+## ☁️ Despliegue en Azure App Service
+
+### Aplicación en Producción
+
+La aplicación está desplegada y funcionando en Azure App Service:
+
+**🌐 URL de producción:** https://hola-noelia-app.azurewebsites.net
+
+### Configuración del Despliegue
+
+#### 1. Preparar la imagen Docker
+```bash
+# Construir imagen local
+docker build -t hola-noelia .
+
+# Etiquetar para Docker Hub
+docker tag hola-noelia:latest santiagososam/hola-noelia:latest
+
+# Subir a Docker Hub
+docker push santiagososam/hola-noelia:latest
+```
+
+#### 2. Crear App Service en Azure
+```bash
+# Crear grupo de recursos
+az group create --name hola-noelia-rg --location eastus
+
+# Crear App Service Plan (Linux)
+az appservice plan create --name hola-noelia-plan --resource-group hola-noelia-rg --location eastus --is-linux --sku B1
+
+# Crear App Service con Docker
+az webapp create --resource-group hola-noelia-rg --plan hola-noelia-plan --name hola-noelia-app --deployment-container-image-name santiagososam/hola-noelia:latest
+```
+
+#### 3. Configuración en Azure Portal
+
+1. **App Service:** `hola-noelia-app`
+2. **Sistema operativo:** Linux
+3. **Plan:** B1 (básico)
+4. **Región:** East US
+5. **Configuración Docker:**
+   - **Container type:** Single container
+   - **Image source:** Otros registros de contenedor
+   - **Image type:** Público
+   - **Registry login server:** santiagososam
+   - **Image and tag:** hola-noelia:latest
+   - **Puerto:** 8080
+
+### Verificar el Despliegue
+
+Una vez configurado, la aplicación estará disponible en:
+- **URL principal:** https://hola-noelia-app.azurewebsites.net
+- **Endpoints disponibles:**
+  - https://hola-noelia-app.azurewebsites.net/hola/web
+  - https://hola-noelia-app.azurewebsites.net/hola
+  - https://hola-noelia-app.azurewebsites.net/hola/json
+
+### Monitoreo y Logs
+
+- **Logs de aplicación:** Disponibles en Azure Portal
+- **Métricas:** CPU, memoria, requests
+- **Health checks:** Automáticos cada 30s
+
 ## 🔄 Jenkins Pipeline
 
 ### Configuración en Jenkins
@@ -81,6 +145,7 @@ docker-compose down
 - 🔍 **Verificación de calidad** del código
 - 🚀 **Construcción nativa** opcional
 - 📁 **Archivado de artefactos**
+- 🐳 **Construcción de Docker** automática
 - 🌍 **Despliegue** a diferentes ambientes
 - 📧 **Notificaciones** por email
 
@@ -134,6 +199,7 @@ docker-compose down
 - **Animaciones**: CSS animations y JavaScript
 - **CI/CD**: Jenkins Pipeline
 - **Containerización**: Docker, Docker Compose
+- **Cloud**: Azure App Service
 - **Proxy**: Nginx
 
 ## 📦 Estructura del proyecto
@@ -186,4 +252,10 @@ En Jenkins: **Manage Jenkins** → **Configure System**:
 
 ## 🎉 ¡Disfruta tu aplicación!
 
-La aplicación ahora tiene una interfaz web hermosa y moderna que hace que tu mensaje "Hola soy NOelia desde Quarkus" se vea espectacular. ¡Perfecta para mostrar las capacidades de Quarkus con CI/CD completo! 
+La aplicación ahora tiene una interfaz web hermosa y moderna que hace que tu mensaje "Hola soy NOelia desde Quarkus" se vea espectacular. ¡Perfecta para mostrar las capacidades de Quarkus con CI/CD completo y despliegue en la nube!
+
+### 🌐 Enlaces importantes
+
+- **Aplicación local:** http://localhost:8080
+- **Aplicación en Azure:** https://hola-noelia-app.azurewebsites.net
+- **Docker Hub:** santiagososam/hola-noelia:latest 
