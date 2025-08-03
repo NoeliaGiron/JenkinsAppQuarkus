@@ -106,7 +106,7 @@ pipeline {
             post {
                 always {
                     echo '📊 Generando reportes de pruebas...'
-                    publishTestResults testResultsPattern: '**/target/surefire-reports/*.xml'
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
