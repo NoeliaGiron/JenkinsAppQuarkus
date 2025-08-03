@@ -106,7 +106,15 @@ pipeline {
             post {
                 always {
                     echo '📊 Generando reportes de pruebas...'
-                    junit '**/target/surefire-reports/*.xml'
+                    script {
+                        // Solo ejecutar junit si hay archivos de reportes
+                        def testFiles = findFiles(glob: '**/target/surefire-reports/*.xml')
+                        if (testFiles.length > 0) {
+                            junit '**/target/surefire-reports/*.xml'
+                        } else {
+                            echo 'ℹ️ No se encontraron reportes de pruebas (normal para proyectos nuevos)'
+                        }
+                    }
                 }
             }
         }
