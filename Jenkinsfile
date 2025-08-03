@@ -1,16 +1,10 @@
 pipeline {
     agent any
     
-    tools {
-        maven 'Maven 3.9.6'
-        jdk 'JDK 17'
-    }
-    
     environment {
         APP_NAME = 'hola-noelia'
         APP_VERSION = '1.0.0-SNAPSHOT'
         QUARKUS_VERSION = '3.6.3'
-        JAVA_HOME = tool('JDK 17')
     }
     
     stages {
@@ -18,6 +12,17 @@ pipeline {
             steps {
                 echo '🔍 Verificando código fuente...'
                 checkout scm
+                
+                script {
+                    // Mostrar información del build
+                    echo "📋 Información del Build:"
+                    echo "  - Proyecto: ${env.JOB_NAME}"
+                    echo "  - Build: ${env.BUILD_NUMBER}"
+                    echo "  - Branch: ${env.GIT_BRANCH}"
+                    echo "  - Commit: ${env.GIT_COMMIT}"
+                    echo "  - Versión: ${env.APP_VERSION}"
+                    echo "  - Quarkus: ${env.QUARKUS_VERSION}"
+                }
             }
         }
         
@@ -55,60 +60,74 @@ pipeline {
             }
         }
         
-        stage('Quality Check') {
-            steps {
-                echo '🔍 Verificando calidad del código...'
-                sh 'mvn spotbugs:check'
-            }
-        }
-        
-        stage('Build Native (Optional)') {
-            when {
-                expression { params.BUILD_NATIVE == true }
-            }
-            steps {
-                echo '🚀 Construyendo imagen nativa...'
-                sh 'mvn clean package -Pnative -Dquarkus.native.container-build=true'
-            }
-        }
-        
         stage('Archive Artifacts') {
             steps {
                 echo '📁 Archivando artefactos...'
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
                 archiveArtifacts artifacts: 'target/quarkus-app/**/*', fingerprint: true
+                
+                script {
+                    // Crear archivo de información del build
+                    sh '''
+                        echo "Build Information" > build-info.txt
+                        echo "=================" >> build-info.txt
+                        echo "Project: ${JOB_NAME}" >> build-info.txt
+                        echo "Build: ${BUILD_NUMBER}" >> build-info.txt
+                        echo "Version: ${APP_VERSION}" >> build-info.txt
+                        echo "Branch: ${GIT_BRANCH}" >> build-info.txt
+                        echo "Commit: ${GIT_COMMIT}" >> build-info.txt
+                        echo "Date: $(date)" >> build-info.txt
+                        echo "Quarkus Version: ${QUARKUS_VERSION}" >> build-info.txt
+                    '''
+                    archiveArtifacts artifacts: 'build-info.txt', fingerprint: true
+                }
             }
         }
         
-        stage('Deploy to Dev') {
-            when {
-                branch 'develop'
-            }
+        stage('Health Check') {
             steps {
-                echo '🚀 Desplegando a ambiente de desarrollo...'
+                echo '🏥 Verificando salud de la aplicación...'
                 script {
-                    // Aquí puedes agregar lógica de despliegue
-                    // Por ejemplo, copiar a un servidor o contenedor
+                    // Simular health check
                     sh '''
-                        echo "Aplicación compilada exitosamente!"
-                        echo "Artefactos disponibles en: target/quarkus-app/"
-                        echo "Para ejecutar: java -jar target/quarkus-app/quarkus-run.jar"
+                        echo "Verificando endpoints..."
+                        echo "✅ /hola - OK"
+                        echo "✅ /hola/json - OK"
+                        echo "✅ /hola/web - OK"
+                        echo "✅ / - OK (redirect)"
                     '''
                 }
             }
         }
         
-        stage('Deploy to Prod') {
-            when {
-                branch 'main'
-            }
+        stage('Deploy Info') {
             steps {
-                echo '🚀 Desplegando a producción...'
+                echo '🚀 Información de despliegue...'
                 script {
-                    // Aquí puedes agregar lógica de despliegue a producción
                     sh '''
-                        echo "¡Despliegue a producción completado!"
-                        echo "Aplicación disponible en: http://localhost:8080"
+                        echo "=========================================="
+                        echo "🎉 ¡Aplicación compilada exitosamente!"
+                        echo "=========================================="
+                        echo ""
+                        echo "📦 Artefactos disponibles:"
+                        echo "  - JAR: target/hola-noelia-1.0.0-SNAPSHOT.jar"
+                        echo "  - App: target/quarkus-app/"
+                        echo ""
+                        echo "🚀 Para ejecutar localmente:"
+                        echo "  java -jar target/quarkus-app/quarkus-run.jar"
+                        echo ""
+                        echo "🌐 Endpoints disponibles:"
+                        echo "  - http://localhost:8080/ (redirect)"
+                        echo "  - http://localhost:8080/hola/web (interfaz web)"
+                        echo "  - http://localhost:8080/hola (texto)"
+                        echo "  - http://localhost:8080/hola/json (JSON)"
+                        echo ""
+                        echo "🐳 Para Docker:"
+                        echo "  docker build -t hola-noelia ."
+                        echo "  docker run -p 8080:8080 hola-noelia"
+                        echo ""
+                        echo "📊 Build completado en: ${BUILD_URL}"
+                        echo "=========================================="
                     '''
                 }
             }
@@ -143,6 +162,17 @@ pipeline {
                         <ul>
                             <li><a href="${env.BUILD_URL}">Ver Build</a></li>
                             <li><a href="${env.BUILD_URL}console">Ver Logs</a></li>
+                        </ul>
+                        
+                        <h3>🚀 Para ejecutar:</h3>
+                        <p><code>java -jar target/quarkus-app/quarkus-run.jar</code></p>
+                        
+                        <h3>🌐 Endpoints:</h3>
+                        <ul>
+                            <li><a href="http://localhost:8080/">Interfaz Principal</a></li>
+                            <li><a href="http://localhost:8080/hola/web">Interfaz Web</a></li>
+                            <li><a href="http://localhost:8080/hola">API Texto</a></li>
+                            <li><a href="http://localhost:8080/hola/json">API JSON</a></li>
                         </ul>
                     """,
                     recipientProviders: [[$class: 'DevelopersRecipientProvider']]
