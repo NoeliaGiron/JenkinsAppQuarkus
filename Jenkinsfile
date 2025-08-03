@@ -138,6 +138,45 @@ pipeline {
             }
         }
         
+        stage('Build Docker Image') {
+            agent {
+                docker {
+                    image 'docker:dind'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock --privileged'
+                }
+            }
+            steps {
+                echo '🐳 Construyendo imagen Docker...'
+                script {
+                    sh '''
+                        # Verificar Docker
+                        docker --version
+                        
+                        # Construir imagen con permisos de admin
+                        docker build -t hola-noelia:latest .
+                        
+                        # Verificar que la imagen se creó correctamente
+                        docker images hola-noelia
+                        
+                        echo "✅ Imagen Docker construida exitosamente"
+                        echo "📦 Imagen: hola-noelia:latest"
+                        echo "🐳 Para ejecutar: docker run -p 8080:8080 hola-noelia:latest"
+                    '''
+                }
+            }
+            post {
+                always {
+                    script {
+                        // Limpiar imágenes Docker si es necesario
+                        sh '''
+                            echo "🧹 Limpiando imágenes Docker temporales..."
+                            docker system prune -f || true
+                        '''
+                    }
+                }
+            }
+        }
+        
         stage('Success Info') {
             steps {
                 echo '🎉 ¡Build completado exitosamente!'
@@ -157,9 +196,9 @@ pipeline {
                         echo "  - http://localhost:8080/hola (texto)"
                         echo "  - http://localhost:8080/hola/json (JSON)"
                         echo ""
-                        echo "🐳 Para Docker:"
-                        echo "  docker build -t hola-noelia ."
-                        echo "  docker run -p 8080:8080 hola-noelia"
+                        echo "🐳 Docker (construido automáticamente):"
+                        echo "  docker run -p 8080:8080 hola-noelia:latest"
+                        echo "  docker images hola-noelia"
                         echo ""
                         echo "📊 Build completado en: ${BUILD_URL}"
                         echo "=========================================="
