@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  hola-noelia-app:
+    build: .
+    container_name: hola-noelia-quarkus
+    ports:
+      - "8080:8080"
+    environment:
+      - QUARKUS_PROFILE=prod
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/hola"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - quarkus-network
+
+  # Optional: Add a reverse proxy (nginx)
+  nginx:
+    image: nginx:alpine
+    container_name: hola-noelia-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - hola-noelia-app
+    restart: unless-stopped
+    networks:
+      - quarkus-network
+
+networks:
+  quarkus-network:
+    driver: bridge
+
+volumes:
+  app-data: 

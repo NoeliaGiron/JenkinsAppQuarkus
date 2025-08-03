@@ -1,0 +1,37 @@
+# Maven
+target/
+!target/*.jar
+!target/quarkus-app/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Jenkins
+Jenkinsfile*
+Jenkins/
+
+# Documentation
+README.md
+*.md
+
+# Temporary files
+*.tmp
+*.temp 

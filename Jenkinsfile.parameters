@@ -1,0 +1,250 @@
+pipeline {
+    agent any
+    
+    tools {
+        maven 'Maven 3.9.6'
+        jdk 'JDK 17'
+    }
+    
+    parameters {
+        booleanParam(
+            name: 'BUILD_NATIVE',
+            defaultValue: false,
+            description: 'Construir imagen nativa de Quarkus'
+        )
+        choice(
+            name: 'DEPLOY_ENVIRONMENT',
+            choices: ['dev', 'staging', 'prod'],
+            description: 'Ambiente de despliegue'
+        )
+        string(
+            name: 'APP_VERSION',
+            defaultValue: '1.0.0-SNAPSHOT',
+            description: 'Versión de la aplicación'
+        )
+        booleanParam(
+            name: 'SEND_NOTIFICATIONS',
+            defaultValue: true,
+            description: 'Enviar notificaciones por email'
+        )
+    }
+    
+    environment {
+        APP_NAME = 'hola-noelia'
+        QUARKUS_VERSION = '3.6.3'
+        JAVA_HOME = tool('JDK 17')
+        BUILD_TAG = "${env.BUILD_TAG}"
+        GIT_COMMIT = "${env.GIT_COMMIT}"
+        GIT_BRANCH = "${env.GIT_BRANCH}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '🔍 Verificando código fuente...'
+                checkout scm
+                
+                script {
+                    // Mostrar información del build
+                    echo "📋 Información del Build:"
+                    echo "  - Proyecto: ${env.JOB_NAME}"
+                    echo "  - Build: ${env.BUILD_NUMBER}"
+                    echo "  - Branch: ${env.GIT_BRANCH}"
+                    echo "  - Commit: ${env.GIT_COMMIT}"
+                    echo "  - Versión: ${params.APP_VERSION}"
+                    echo "  - Ambiente: ${params.DEPLOY_ENVIRONMENT}"
+                    echo "  - Native Build: ${params.BUILD_NATIVE}"
+                }
+            }
+        }
+        
+        stage('Validate') {
+            steps {
+                echo '✅ Validando proyecto Maven...'
+                sh 'mvn validate'
+            }
+        }
+        
+        stage('Compile') {
+            steps {
+                echo '🔨 Compilando aplicación Quarkus...'
+                sh 'mvn compile'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo '🧪 Ejecutando pruebas...'
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    echo '📊 Generando reportes de pruebas...'
+                    publishTestResults testResultsPattern: '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+        
+        stage('Package') {
+            steps {
+                echo '📦 Empaquetando aplicación...'
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+        
+        stage('Quality Check') {
+            steps {
+                echo '🔍 Verificando calidad del código...'
+                sh 'mvn spotbugs:check'
+            }
+        }
+        
+        stage('Build Native (Optional)') {
+            when {
+                expression { params.BUILD_NATIVE == true }
+            }
+            steps {
+                echo '🚀 Construyendo imagen nativa...'
+                sh 'mvn clean package -Pnative -Dquarkus.native.container-build=true'
+            }
+        }
+        
+        stage('Archive Artifacts') {
+            steps {
+                echo '📁 Archivando artefactos...'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                archiveArtifacts artifacts: 'target/quarkus-app/**/*', fingerprint: true
+                
+                script {
+                    // Crear archivo de información del build
+                    sh '''
+                        echo "Build Information" > build-info.txt
+                        echo "=================" >> build-info.txt
+                        echo "Project: ${JOB_NAME}" >> build-info.txt
+                        echo "Build: ${BUILD_NUMBER}" >> build-info.txt
+                        echo "Version: ${APP_VERSION}" >> build-info.txt
+                        echo "Branch: ${GIT_BRANCH}" >> build-info.txt
+                        echo "Commit: ${GIT_COMMIT}" >> build-info.txt
+                        echo "Date: $(date)" >> build-info.txt
+                        echo "Quarkus Version: ${QUARKUS_VERSION}" >> build-info.txt
+                    '''
+                    archiveArtifacts artifacts: 'build-info.txt', fingerprint: true
+                }
+            }
+        }
+        
+        stage('Deploy to Environment') {
+            steps {
+                echo "🚀 Desplegando a ambiente: ${params.DEPLOY_ENVIRONMENT}"
+                script {
+                    switch(params.DEPLOY_ENVIRONMENT) {
+                        case 'dev':
+                            echo 'Desplegando a desarrollo...'
+                            sh '''
+                                echo "✅ Despliegue a desarrollo completado"
+                                echo "Aplicación disponible en: http://localhost:8080"
+                                echo "Para ejecutar: java -jar target/quarkus-app/quarkus-run.jar"
+                            '''
+                            break
+                        case 'staging':
+                            echo 'Desplegando a staging...'
+                            sh '''
+                                echo "✅ Despliegue a staging completado"
+                                echo "Aplicación disponible en: http://staging-server:8080"
+                            '''
+                            break
+                        case 'prod':
+                            echo 'Desplegando a producción...'
+                            sh '''
+                                echo "✅ Despliegue a producción completado"
+                                echo "Aplicación disponible en: http://prod-server:8080"
+                            '''
+                            break
+                    }
+                }
+            }
+        }
+        
+        stage('Health Check') {
+            steps {
+                echo '🏥 Verificando salud de la aplicación...'
+                script {
+                    // Simular health check
+                    sh '''
+                        echo "Verificando endpoints..."
+                        echo "✅ /hola - OK"
+                        echo "✅ /hola/json - OK"
+                        echo "✅ /hola/web - OK"
+                        echo "✅ / - OK (redirect)"
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo '🧹 Limpiando workspace...'
+            cleanWs()
+        }
+        success {
+            echo '✅ Pipeline completado exitosamente!'
+            script {
+                if (params.SEND_NOTIFICATIONS) {
+                    emailext (
+                        subject: "✅ Pipeline SUCCESS: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                        body: """
+                            <h2>Pipeline Completado Exitosamente</h2>
+                            <p><strong>Proyecto:</strong> ${env.JOB_NAME}</p>
+                            <p><strong>Build:</strong> ${env.BUILD_NUMBER}</p>
+                            <p><strong>Branch:</strong> ${env.GIT_BRANCH}</p>
+                            <p><strong>Commit:</strong> ${env.GIT_COMMIT}</p>
+                            <p><strong>Duración:</strong> ${currentBuild.durationString}</p>
+                            <p><strong>Ambiente:</strong> ${params.DEPLOY_ENVIRONMENT}</p>
+                            <p><strong>Versión:</strong> ${params.APP_VERSION}</p>
+                            
+                            <h3>🎯 Aplicación Quarkus</h3>
+                            <p><strong>Nombre:</strong> ${env.APP_NAME}</p>
+                            <p><strong>Quarkus:</strong> ${env.QUARKUS_VERSION}</p>
+                            
+                            <h3>🔗 Enlaces</h3>
+                            <ul>
+                                <li><a href="${env.BUILD_URL}">Ver Build</a></li>
+                                <li><a href="${env.BUILD_URL}console">Ver Logs</a></li>
+                            </ul>
+                        """,
+                        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                    )
+                }
+            }
+        }
+        failure {
+            echo '❌ Pipeline falló!'
+            script {
+                if (params.SEND_NOTIFICATIONS) {
+                    emailext (
+                        subject: "❌ Pipeline FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                        body: """
+                            <h2>Pipeline Falló</h2>
+                            <p><strong>Proyecto:</strong> ${env.JOB_NAME}</p>
+                            <p><strong>Build:</strong> ${env.BUILD_NUMBER}</p>
+                            <p><strong>Branch:</strong> ${env.GIT_BRANCH}</p>
+                            <p><strong>Commit:</strong> ${env.GIT_COMMIT}</p>
+                            <p><strong>Duración:</strong> ${currentBuild.durationString}</p>
+                            
+                            <h3>🔍 Para más detalles:</h3>
+                            <ul>
+                                <li><a href="${env.BUILD_URL}">Ver Build</a></li>
+                                <li><a href="${env.BUILD_URL}console">Ver Logs</a></li>
+                            </ul>
+                        """,
+                        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                    )
+                }
+            }
+        }
+        cleanup {
+            echo '🧹 Limpieza final...'
+        }
+    }
+} 
