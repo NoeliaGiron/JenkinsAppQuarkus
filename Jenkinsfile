@@ -74,11 +74,8 @@ pipeline {
                 echo '✅ Validando proyecto Maven...'
                 script {
                     sh '''
-                        if command -v mvn &> /dev/null; then
-                            mvn validate
-                        else
-                            ./apache-maven-${MAVEN_VERSION}/bin/mvn validate
-                        fi
+                        # Usar Maven instalado en el workspace
+                        ./apache-maven-${MAVEN_VERSION}/bin/mvn validate
                     '''
                 }
             }
@@ -89,11 +86,8 @@ pipeline {
                 echo '🔨 Compilando aplicación Quarkus...'
                 script {
                     sh '''
-                        if command -v mvn &> /dev/null; then
-                            mvn compile
-                        else
-                            ./apache-maven-${MAVEN_VERSION}/bin/mvn compile
-                        fi
+                        # Usar Maven instalado en el workspace
+                        ./apache-maven-${MAVEN_VERSION}/bin/mvn compile
                     '''
                 }
             }
@@ -104,11 +98,8 @@ pipeline {
                 echo '🧪 Ejecutando pruebas...'
                 script {
                     sh '''
-                        if command -v mvn &> /dev/null; then
-                            mvn test
-                        else
-                            ./apache-maven-${MAVEN_VERSION}/bin/mvn test
-                        fi
+                        # Usar Maven instalado en el workspace
+                        ./apache-maven-${MAVEN_VERSION}/bin/mvn test
                     '''
                 }
             }
@@ -125,11 +116,8 @@ pipeline {
                 echo '📦 Empaquetando aplicación...'
                 script {
                     sh '''
-                        if command -v mvn &> /dev/null; then
-                            mvn clean package -DskipTests
-                        else
-                            ./apache-maven-${MAVEN_VERSION}/bin/mvn clean package -DskipTests
-                        fi
+                        # Usar Maven instalado en el workspace
+                        ./apache-maven-${MAVEN_VERSION}/bin/mvn clean package -DskipTests
                     '''
                 }
             }
