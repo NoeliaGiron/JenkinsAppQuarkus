@@ -1,6 +1,6 @@
 # Hola Noelia - Aplicación Quarkus
 
-Esta es una aplicación hermosa de Quarkus que muestra el mensaje "Hola soy NOelia desde Quarkus" con una interfaz web moderna y atractiva.
+Esta es una aplicación hermosa de Quarkus que muestra el mensaje "Hola soy Noelia desde Quarkus" con una interfaz web moderna y atractiva.
 
 ## ✨ Características
 
